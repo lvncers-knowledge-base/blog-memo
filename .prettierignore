@@ -1,0 +1,10 @@
+.cursor
+node_modules
+dist
+out
+coverage
+*.tgz
+.cache
+.idea
+.DS_Store
+bun.lock

@@ -1,0 +1,16 @@
+{
+  "name": "blog-memo",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "prettier": "^3.8.2"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

@@ -87,11 +87,11 @@
 対面による顔合わせです。
 ここで、大まかなマイルストーンや役割整理をしました。
 
-![livefx-schedule-img](/images/livefx-zenn/IMG_2198.jpeg)
+![livefx-schedule-img](/images/livefx-2026-zenn/IMG_2198.jpeg)
 
 今年の開発方針が決まりました
 
-![livefx-dev-rules-img](/images/livefx-zenn/IMG_2196.jpeg)
+![livefx-dev-rules-img](/images/livefx-2026-zenn/IMG_2196.jpeg)
 
 去年のメンバーをメインに、去年やり残したことと、今年やりたいことをまとめました。
 
@@ -470,6 +470,6 @@ ITを学んで何ができるようになるかが入学する人たちが知れ
 
 - 次にやりたいこと
 
-![livefx-feature-img](/images/livefx-zenn/IMG_2197.jpeg)
+![livefx-feature-img](/images/livefx-2026-zenn/IMG_2197.jpeg)
 
 - 今の課題

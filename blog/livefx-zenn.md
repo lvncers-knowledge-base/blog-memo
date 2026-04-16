@@ -87,15 +87,15 @@
 対面による顔合わせです。
 ここで、大まかなマイルストーンや役割整理をしました。
 
-![](/images/livefx-zenn/IMG_2198.jpeg)
+![livefx-schedule-img](/images/livefx-zenn/IMG_2198.jpeg)
 
 今年の開発方針が決まりました
 
-![](/images/livefx-zenn/IMG_2196.jpeg)
+![livefx-dev-rules-img](/images/livefx-zenn/IMG_2196.jpeg)
 
 去年のメンバーをメインに、去年やり残したことと、今年やりたいことをまとめました。
 
-```
+```md
 # 今年の追加事項(まだ途中 + 募集中)
 
 ## 1. 画面構成・遷移設計要件
@@ -386,7 +386,7 @@ ITを学んで何ができるようになるかが入学する人たちが知れ
 
 タスクがより具体的になってきました。
 
-```
+```md
 - エピローグ画面を更新する @2年生フロントだれか
     - 更新して、役職なしで全員の名前だけ載せる
     - 一旦notionで整理
@@ -470,6 +470,6 @@ ITを学んで何ができるようになるかが入学する人たちが知れ
 
 - 次にやりたいこと
 
-![](/images/livefx-zenn/IMG_2197.jpeg)
+![livefx-feature-img](/images/livefx-zenn/IMG_2197.jpeg)
 
 - 今の課題

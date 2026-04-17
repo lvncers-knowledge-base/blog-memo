@@ -248,8 +248,6 @@ flowchart TB
 
 #### `front-smartphone`
 
-
-
 ##### 画面一覧
 
 | 画面                 | MIDI ボタン番号 | 表示タイミング                  | コンポーネント           | 役割 / 中身                                                                                                                                                                                               | 去年からの変化 |
@@ -1012,7 +1010,6 @@ waveFlex / rippleFlex などの実行順が schoolId ベースで決まってお
 Notion タスクにコーディングも追加され始め、Notion に吸収され始めたんです。
 
 これはチームメンバーが比較的、Notion の方が使い慣れてると言うのもあると思います。
-
 
 ### `gh pr merge --squash --admin` 事件
 

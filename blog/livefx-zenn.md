@@ -100,9 +100,9 @@ grafana画像
 
 ### 定例会議やコミュニケーションツール
 
-| 会議名   | 頻度 | 内容                    |
-| -------- | ---- | ----------------------- |
-| 定例会議 | 週一 | 開発に関する会議 |
+| 会議名   | 頻度 | 内容                   |
+| -------- | ---- | ---------------------- |
+| 定例会議 | 週一 | 開発に関する会議       |
 | 演出会議 | 適宜 | 台本や演出に関する会議 |
 
 | ツール名   | 用途                                                   |
@@ -252,14 +252,14 @@ flowchart TB
 
 ##### 画面一覧
 
-| 画面 | MIDI ボタン番号 | 表示タイミング | コンポーネント | 役割 / 中身 | 去年からの変化 |
-| ---- | ---- | ---- | ---- | ---- | ---- |
-| ロゴ画面 | `112` | 初回アクセス直後 | `LogoScreen.tsx` | 黒背景に `LiveFx` ロゴをフェードインで表示。 | |
-| 待機画面 | `113` | 開式前の案内時間から演出前まで | `StandbyScreen.tsx` | グループ番号 (01-18) に紐付く学校名を表示しつつ、`CherryBlossom` で花びらが降る演出。入学おめでとうメッセージ付き | |
-| 演出画面 | `114` | 本番の演出 | (何もレンダリングしない) | 画面自体は `null` を返し、`document.body` の背景色と `<div>` フィルターだけで演出する。`changeColor` / `changeFilter` / `pattern` / `sendAdjustmentData` / `sendFlexPatternData` はここでしか反映されない | |
-| インタラクティブ画面 | `115` | 観客参加型コンテンツ (桜の選択) | `InteractiveScreen.tsx` | 4 色 (pink/orange/yellow/green) の花から 1 つを選び、上スワイプで確定して `POST /api/cherry-blossom/select` に送る。送信後は「スクリーンをご覧ください！」のロック画面に切り替わる | 完全新規追加 |
-| エピローグ画面 | `116` | 演出終了後 | `EpilogueScreen.tsx` | `ENDROLL_VIDEO_URL` を `<video autoPlay muted playsInline>` で再生。開発時はローカル MP4、本番は CloudFront 配信 | 動画再生に変更 |
-| ポータル画面 | `117` | プレゼン終了後 | `PortalScreen.tsx` | イラスト背景に雲のフロートアニメーションを重ね、`PORTAL_SCREEN_LINK_URL` (`https://livefx.siw.ac.jp/`) への導線を作る画面 | 完全新規追加 |
+| 画面                 | MIDI ボタン番号 | 表示タイミング                  | コンポーネント           | 役割 / 中身                                                                                                                                                                                               | 去年からの変化 |
+| -------------------- | --------------- | ------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| ロゴ画面             | `112`           | 初回アクセス直後                | `LogoScreen.tsx`         | 黒背景に `LiveFx` ロゴをフェードインで表示。                                                                                                                                                              |                |
+| 待機画面             | `113`           | 開式前の案内時間から演出前まで  | `StandbyScreen.tsx`      | グループ番号 (01-18) に紐付く学校名を表示しつつ、`CherryBlossom` で花びらが降る演出。入学おめでとうメッセージ付き                                                                                         |                |
+| 演出画面             | `114`           | 本番の演出                      | (何もレンダリングしない) | 画面自体は `null` を返し、`document.body` の背景色と `<div>` フィルターだけで演出する。`changeColor` / `changeFilter` / `pattern` / `sendAdjustmentData` / `sendFlexPatternData` はここでしか反映されない |                |
+| インタラクティブ画面 | `115`           | 観客参加型コンテンツ (桜の選択) | `InteractiveScreen.tsx`  | 4 色 (pink/orange/yellow/green) の花から 1 つを選び、上スワイプで確定して `POST /api/cherry-blossom/select` に送る。送信後は「スクリーンをご覧ください！」のロック画面に切り替わる                        | 完全新規追加   |
+| エピローグ画面       | `116`           | 演出終了後                      | `EpilogueScreen.tsx`     | `ENDROLL_VIDEO_URL` を `<video autoPlay muted playsInline>` で再生。開発時はローカル MP4、本番は CloudFront 配信                                                                                          | 動画再生に変更 |
+| ポータル画面         | `117`           | プレゼン終了後                  | `PortalScreen.tsx`       | イラスト背景に雲のフロートアニメーションを重ね、`PORTAL_SCREEN_LINK_URL` (`https://livefx.siw.ac.jp/`) への導線を作る画面                                                                                 | 完全新規追加   |
 
 #### `back-smartphone`
 
@@ -285,26 +285,26 @@ TCP 接続については Service Connect 経由 (`TCP_SERVER_HOST` が環境変
 
 状態変数の主な意味:
 
-| 状態 | 更新契機 | 用途 |
-| ---- | ---- | ---- |
-| `currentPage` | `changePage` イベント受信時 | 次の接続/再接続クライアントに送る画面情報 |
-| `currentPattern` | `pattern` / `sendAdjustmentData` / `sendFlexPatternData` 受信時 | 再接続時に演出を復元するためのペイロード (文字列 or JSON) |
-| `currentRunUNIXTimeMs` | パターン系イベント受信時 | 演出実行の時間基準 (再接続時の相対時刻計算に使う) |
-| `currentFilter` | `changeFilter` 受信時 | フィルターの不透明度 (0-100) |
-| `currentGroups` | 演出イベントの `groups` を直接反映 | 対象グループの一覧 (1-based) |
+| 状態                   | 更新契機                                                        | 用途                                                      |
+| ---------------------- | --------------------------------------------------------------- | --------------------------------------------------------- |
+| `currentPage`          | `changePage` イベント受信時                                     | 次の接続/再接続クライアントに送る画面情報                 |
+| `currentPattern`       | `pattern` / `sendAdjustmentData` / `sendFlexPatternData` 受信時 | 再接続時に演出を復元するためのペイロード (文字列 or JSON) |
+| `currentRunUNIXTimeMs` | パターン系イベント受信時                                        | 演出実行の時間基準 (再接続時の相対時刻計算に使う)         |
+| `currentFilter`        | `changeFilter` 受信時                                           | フィルターの不透明度 (0-100)                              |
+| `currentGroups`        | 演出イベントの `groups` を直接反映                              | 対象グループの一覧 (1-based)                              |
 
 ### 3 アプリの責務マトリクス
 
-| 項目 | control-pc | back-smartphone | front-smartphone |
-| ---- | ---- | ---- | ---- |
-| エントリーポイント | `control-pc/src/server/main.ts` | `back-smartphone/src/app.ts` | `front-smartphone/src/main.tsx` |
-| 公開ポート | HTTP 3000 + TCP 41234 | HTTP 3001 | HTTP 4001 (静的) |
-| Socket.IO 役割 | サーバー (`/ws/control-pc`) | サーバー (`/ws/smart-phone/NN`) | クライアント |
-| TCP 役割 | サーバー | クライアント | なし |
-| 状態保持 | プロセス内変数 (`currentPage` 他) | プロセス内変数 + Redis Pub/Sub | なし (受信即描画) |
-| 認証 | セッション + CSRF | なし (CORS allow list) | なし |
-| 外部ハードウェア | ブラウザから Web MIDI / Web Serial | なし | なし |
-| 監視 | `/api/status` | `/metrics` (Prometheus) | ALB アクセスログ中心 |
+| 項目               | control-pc                         | back-smartphone                 | front-smartphone                |
+| ------------------ | ---------------------------------- | ------------------------------- | ------------------------------- |
+| エントリーポイント | `control-pc/src/server/main.ts`    | `back-smartphone/src/app.ts`    | `front-smartphone/src/main.tsx` |
+| 公開ポート         | HTTP 3000 + TCP 41234              | HTTP 3001                       | HTTP 4001 (静的)                |
+| Socket.IO 役割     | サーバー (`/ws/control-pc`)        | サーバー (`/ws/smart-phone/NN`) | クライアント                    |
+| TCP 役割           | サーバー                           | クライアント                    | なし                            |
+| 状態保持           | プロセス内変数 (`currentPage` 他)  | プロセス内変数 + Redis Pub/Sub  | なし (受信即描画)               |
+| 認証               | セッション + CSRF                  | なし (CORS allow list)          | なし                            |
+| 外部ハードウェア   | ブラウザから Web MIDI / Web Serial | なし                            | なし                            |
+| 監視               | `/api/status`                      | `/metrics` (Prometheus)         | ALB アクセスログ中心            |
 
 ### メトリクス収集
 

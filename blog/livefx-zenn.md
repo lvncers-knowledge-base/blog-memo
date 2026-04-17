@@ -1,4 +1,4 @@
-# WebSocket同時接続3000超のライブ演出システムを2026年も披露しました
+# WebSocket 同時接続 3000 超のライブ演出システムを 2026 年も披露しました
 
 ## アジェンダ
 
@@ -76,7 +76,7 @@ grafana画像
 
 113 日（約 4 ヶ月）
 
-### 開発メンバー
+### 開発メンバーの変化
 
 | 期生                | 年制      | 人数         |
 | ------------------- | --------- | ------------ |
@@ -88,7 +88,7 @@ grafana画像
 
 - プレゼンターには新しく情報科から 2 人参加
 
-### 役割（ Discord のタグで管理、重複あり）
+### 役割（Discord のタグで管理、重複あり）
 
 | 役割             | 人数            |
 | ---------------- | --------------- |
@@ -102,8 +102,8 @@ grafana画像
 
 | 会議名   | 頻度 | 内容                    |
 | -------- | ---- | ----------------------- |
-| 定例会議 | 週一 | Discordにて会議(開発者) |
-| 演出会議 | 適宜 | Discordにて会議(開発者) |
+| 定例会議 | 週一 | 開発に関する会議 |
+| 演出会議 | 適宜 | 台本や演出に関する会議 |
 
 | ツール名   | 用途                                                   |
 | ---------- | ------------------------------------------------------ |
@@ -119,19 +119,237 @@ grafana画像
 
 ### システム構成図
 
+```mermaid
+flowchart LR
+    Hardware[MIDI / Serial Devices]
+    Operator[Operator Browser<br/>control-pc client]
+    Admin[管理者/SSO/Secrets 入力]
+    Smartphones[Audience Smartphones<br/>front-smartphone client]
+
+    subgraph ControlPC["control-pc (single ECS task)"]
+        ControlClient[React + Vite SPA]
+        ControlHttp[Express HTTP :3000<br/>API / 認証 / Socket.IO]
+        ControlTcp[TCP Server :41234]
+    end
+
+    subgraph BackSP["back-smartphone (ECS task)"]
+        BackHttp[Express HTTP :3001<br/>Socket.IO + /metrics]
+        BackTcp[TCP Client to control-pc]
+        ADOT[aws-otel-collector sidecar]
+    end
+
+    FrontSP[front-smartphone :4001<br/>React + Vite 静的配信]
+
+    Hardware -->|Web MIDI / Web Serial| Operator
+    Operator -->|HTTPS| ControlClient
+    Operator -->|WSS Socket.IO| ControlHttp
+    Admin -->|HTTPS 認証| ControlHttp
+
+    ControlHttp -.->|"同一プロセス"| ControlTcp
+    ControlHttp -.->|"同一プロセス"| ControlClient
+
+    BackTcp -->|"TCP<br/>control-pc.livefx-{env}.local:41234"| ControlTcp
+    BackHttp --- BackTcp
+    BackHttp -->|"Prometheus scrape /metrics"| ADOT
+
+    BackHttp -->|"Socket.IO namespaces<br/>/ws/smart-phone/01..18"| Smartphones
+    Smartphones -->|HTTPS| FrontSP
+```
+
 ### aws構成図
+
+```mermaid
+flowchart TB
+    Internet((Internet))
+
+    subgraph DNS["Route 53 (livefx.siw.ac.jp)"]
+        R53Smart["livefx.siw.ac.jp<br/>(A Alias)"]
+        R53Control["control.livefx.siw.ac.jp<br/>(A Alias)"]
+        R53Api["api.livefx.siw.ac.jp<br/>(A Alias)"]
+    end
+
+    CF[CloudFront Distribution<br/>livefx-cdn stack<br/>pro only]
+
+    subgraph VPC["VPC (pro: 10.0.0.0/16)"]
+        subgraph Pub["Public Subnets (AZ-a / AZ-c)"]
+            ALB[Application Load Balancer<br/>HTTPS :443, HTTP→HTTPS]
+            NAT[NAT Gateway<br/>pro のみ]
+        end
+        subgraph Priv["Private Subnets (AZ-a / AZ-c)"]
+            subgraph Cluster["ECS Cluster livefx-pro (Fargate)"]
+                ControlTask["control-pc Task<br/>:3000 HTTP, :41234 TCP"]
+                BackTask["back-smartphone Task<br/>:3001 + ADOT sidecar"]
+                FrontTask["front-smartphone Task<br/>:4001"]
+            end
+            SC["Service Connect<br/>livefx-pro.local"]
+            VPCE["VPC Endpoints<br/>dev/sta で主役<br/>pro にも存在"]
+        end
+    end
+
+    ECR[("Amazon ECR")]
+    SM[("Secrets Manager<br/>/livefx/{env}/control-pc-secrets")]
+    SSM[("SSM Parameter Store<br/>/livefx/{env}/adot-config")]
+    Logs[("CloudWatch Logs<br/>/ecs/livefx-{env}")]
+    AMP[("Amazon Managed<br/>Prometheus")]
+    Alarms[CloudWatch Alarms<br/>ALB UnhealthyHost / 5xx / Latency]
+    SNS[SNS Topic<br/>livefx-pro-alarms<br/>pro only]
+    Media[("S3 + CloudFront<br/>media stack")]
+    Runner[Self-hosted GitHub Runner ASG<br/>tools stack / pro VPC]
+
+    Internet --> R53Smart
+    Internet --> R53Control
+    Internet --> R53Api
+    R53Smart --> CF
+    CF --> ALB
+    R53Control --> ALB
+    R53Api --> ALB
+
+    ALB -->|host: control.*| ControlTask
+    ALB -->|"/api/*, /socket.io/*"| BackTask
+    ALB -->|default /*| FrontTask
+
+    ControlTask <-->|tcp-server:41234| SC
+    BackTask -->|tcp client| SC
+    SC -.->|service discovery| ControlTask
+
+    ControlTask --> Logs
+    BackTask --> Logs
+    FrontTask --> Logs
+    BackTask --> AMP
+
+    ControlTask --> SM
+    BackTask --> SSM
+
+    ControlTask --> NAT
+    BackTask --> NAT
+    FrontTask --> NAT
+    ControlTask -. via .-> VPCE
+    BackTask -. via .-> VPCE
+    FrontTask -. via .-> VPCE
+    NAT --> Internet
+    VPCE --> ECR
+    VPCE --> SM
+    VPCE --> SSM
+    VPCE --> Logs
+    VPCE --> AMP
+
+    ALB --> Alarms --> SNS
+    Media -. 別スタック .- ALB
+    Runner -. 別スタック .- Cluster
+```
 
 ### サーバーごとの機能
 
-`front-smartphone`
+#### `front-smartphone`
 
-`back-smartphone`
+- 画面制御は `src/pages/SmartPhonePage.tsx`
+- URL のクエリまたはパスでグループ番号 (1-18) を決め、`src/hooks/useSmartPhoneSocket.ts` が `/ws/smart-phone/{NN}` に接続する
+- 接続時は `currentState` を受け取り、現在のページ・パターン・フィルターを即復元する (後追い参加の観客でもすぐ合流できる)
+- 演出ロジックは `src/lib/` に集約されていて、`flexRuntimeEffects.ts` / `beautyEffects.ts` / `siwEffects.ts` / `weddingEffects.ts` / `hapticEffects.ts` といった演出セットを `useEffectManager` が実行する
+- `PerformanceScreen` 以外のページでは `changeColor` / `changeFilter` / `pattern` を無視する (ガード条件) ので、待機画面のまま本番演出データが届いても暴れない
+- `POST /api/sync` を用いた時刻同期は `src/lib/util/timeSync.ts` が担当し、サーバー側の `runUNIXTimeMs` とローカル時刻を合わせて一斉スタートの演出を実現する
+- エンドロール動画の URL は環境変数 `VITE_ENDROLL_VIDEO_DOMAIN` / `VITE_ENDROLL_VIDEO_KEY` から合成されるが、開発時は `src/assets/end-roll.mp4` のローカル動画を使う
 
-`control-pc`
+##### 画面一覧
 
-### モニタリング
+| 画面 | MIDI ボタン番号 | 表示タイミング | コンポーネント | 役割 / 中身 | 去年からの変化 |
+| ---- | ---- | ---- | ---- | ---- | ---- |
+| ロゴ画面 | `112` | 初回アクセス直後 | `LogoScreen.tsx` | 黒背景に `LiveFx` ロゴをフェードインで表示。 | |
+| 待機画面 | `113` | 開式前の案内時間から演出前まで | `StandbyScreen.tsx` | グループ番号 (01-18) に紐付く学校名を表示しつつ、`CherryBlossom` で花びらが降る演出。入学おめでとうメッセージ付き | |
+| 演出画面 | `114` | 本番の演出 | (何もレンダリングしない) | 画面自体は `null` を返し、`document.body` の背景色と `<div>` フィルターだけで演出する。`changeColor` / `changeFilter` / `pattern` / `sendAdjustmentData` / `sendFlexPatternData` はここでしか反映されない | |
+| インタラクティブ画面 | `115` | 観客参加型コンテンツ (桜の選択) | `InteractiveScreen.tsx` | 4 色 (pink/orange/yellow/green) の花から 1 つを選び、上スワイプで確定して `POST /api/cherry-blossom/select` に送る。送信後は「スクリーンをご覧ください！」のロック画面に切り替わる | 完全新規追加 |
+| エピローグ画面 | `116` | 演出終了後 | `EpilogueScreen.tsx` | `ENDROLL_VIDEO_URL` を `<video autoPlay muted playsInline>` で再生。開発時はローカル MP4、本番は CloudFront 配信 | 動画再生に変更 |
+| ポータル画面 | `117` | プレゼン終了後 | `PortalScreen.tsx` | イラスト背景に雲のフロートアニメーションを重ね、`PORTAL_SCREEN_LINK_URL` (`https://livefx.siw.ac.jp/`) への導線を作る画面 | 完全新規追加 |
+
+#### `back-smartphone`
+
+- `control-pc` に TCP クライアントとして 41234 番で接続し、受けた演出イベントを Socket.IO で 18 個の namespace に分配する
+- `http.createServer(app)` に Socket.IO をアタッチし、`transports: ["websocket"]` の WebSocket 専用 (polling 無効)
+- namespace は `/ws/smart-phone/01` ～ `/ws/smart-phone/18` の 18 本。接続時に `currentState` を即時送信するので、途中参加のスマホでもすぐ追従する
+- スケールアウト時の多重配信のために Socket.IO の Redis Adapter と、TCP メッセージ配信用の独立した Pub/Sub クライアントを併用する (`REDIS_CHANNEL`)
+- 観客起点のインタラクションとして `/api/cherry-blossom/*` を持ち、桜の選択を集計して TCP 経由で `control-pc` に逆流させる
+- 時刻同期のために `POST /api/sync` を提供し、NTP 風の 4 点時刻 (t1/t2/t3/t4) のうち t2/t3 を返す
+- `/metrics` で `wsConnectionCounter` / `wsDisConnectionCounter` / `wsTotalConnectionGauge` などを Prometheus 形式で公開し、サイドカーの ADOT コレクターが AMP に送る
+- ヘルスチェック `/` `/healthz` は常に `200` を返しつつ TCP 接続状態を `status: healthy/degraded` で表現する (Service Connect 経路再収束時にタスク停止ループしないための措置)
+
+TCP 接続については Service Connect 経由 (`TCP_SERVER_HOST` が環境変数で与えられる) と、DNS / IP / 開発用ホスト名のフォールバックを順に試す実装になっていて、連続即 RESET (接続直後 3 秒以内の切断) を検出するとバックオフを段階的に伸ばす。
+
+#### `control-pc`
+
+- 1 つの ECS タスクで「React + Vite クライアント」「Express HTTP API」「Socket.IO (`/ws/control-pc` namespace)」「TCP サーバー (`:41234`)」を同居させる
+- クライアントは `src/client/pages/*.tsx` (`ControlPCPage`, `CherryTreePage`, `MidiPage`, `AdminPage` など) が画面単位のコントローラーになっており、操作を Socket.IO で自サーバーへ送る
+- サーバー側は受け取ったイベントで `currentPage` / `currentPattern` / `currentFilter` / `currentGroups` を記憶し、同じ内容を TCP で `back-smartphone` へフォワードする
+- Web MIDI / Web Serial はブラウザ側 (`src/client/lib/midi-control.ts`, `dmx-control.ts`) で直接扱う。サーバーは関与しない
+- 認証は `src/server/auth/` のセッション + CSRF。WebSocket にも `attachWebSocketAuth` でセッション検証が入り、ログアウト時は `disconnectSessionSockets` で該当ソケットを切る
+- 運用系 API (`/api/images`, `/api/groups`, `/api/midi-button-config`, `/api/monitor-layout`, `/api/config/export`) は管理画面専用で、変更は `data/` ディレクトリに書かれ、`simpleGit` による `scheduleAutoCommit` で自動的にコミットされる
+
+状態変数の主な意味:
+
+| 状態 | 更新契機 | 用途 |
+| ---- | ---- | ---- |
+| `currentPage` | `changePage` イベント受信時 | 次の接続/再接続クライアントに送る画面情報 |
+| `currentPattern` | `pattern` / `sendAdjustmentData` / `sendFlexPatternData` 受信時 | 再接続時に演出を復元するためのペイロード (文字列 or JSON) |
+| `currentRunUNIXTimeMs` | パターン系イベント受信時 | 演出実行の時間基準 (再接続時の相対時刻計算に使う) |
+| `currentFilter` | `changeFilter` 受信時 | フィルターの不透明度 (0-100) |
+| `currentGroups` | 演出イベントの `groups` を直接反映 | 対象グループの一覧 (1-based) |
+
+### 3 アプリの責務マトリクス
+
+| 項目 | control-pc | back-smartphone | front-smartphone |
+| ---- | ---- | ---- | ---- |
+| エントリーポイント | `control-pc/src/server/main.ts` | `back-smartphone/src/app.ts` | `front-smartphone/src/main.tsx` |
+| 公開ポート | HTTP 3000 + TCP 41234 | HTTP 3001 | HTTP 4001 (静的) |
+| Socket.IO 役割 | サーバー (`/ws/control-pc`) | サーバー (`/ws/smart-phone/NN`) | クライアント |
+| TCP 役割 | サーバー | クライアント | なし |
+| 状態保持 | プロセス内変数 (`currentPage` 他) | プロセス内変数 + Redis Pub/Sub | なし (受信即描画) |
+| 認証 | セッション + CSRF | なし (CORS allow list) | なし |
+| 外部ハードウェア | ブラウザから Web MIDI / Web Serial | なし | なし |
+| 監視 | `/api/status` | `/metrics` (Prometheus) | ALB アクセスログ中心 |
+
+### メトリクス収集
+
+```mermaid
+flowchart LR
+    App["back-smartphone<br/>Express :3001<br/>prom-client"]
+    Endpoint["/metrics"]
+    ADOT["aws-otel-collector<br/>sidecar (Fargate 同一タスク)"]
+    SSM[("SSM Parameter Store<br/>/livefx/{env}/adot-config")]
+    AMP[("Amazon Managed<br/>Prometheus<br/>livefx-{env}-metrics")]
+    Grafana["Amazon Managed Grafana<br/>(将来予定)"]
+
+    App -- "prom-client register" --> Endpoint
+    ADOT -- "scrape localhost:3001/metrics<br/>interval 5s" --> Endpoint
+    SSM -- "Secrets: ADOT_CONFIG" --> ADOT
+    ADOT -- "remote_write + sigv4 (aps)" --> AMP
+    AMP -. クエリ予定 .-> Grafana
+```
 
 ## 5. 改めてプレゼン構成とシステム紹介
+
+４月９日に行われた、滋慶学園グループ入学式、さいたまIT・WEB専門学校のプレゼン構成はざっくり下の通りです。
+
+### イントロ（全体ざっくり）
+
+- 新入生へのお祝い＆自己紹介（エンジニア志望・Web デザイナー志望）
+- IT は身近で、生活や様々な分野で活用されていることを説明
+- 学校では技術＋コミュニケーション力を学び、IT 人材を育成していると紹介
+- 学習成果として「 LiveFx 」を体験してもらう流れへ
+
+### LiveFx パート
+
+- 席ごとに配置された QR コードを読み込んでスマホ準備
+- スマホを使って会場演出（単色・ウェーブなど）を体験
+- PC から制御されている仕組みを紹介
+- インタラクティブ機能で「想い」を花として表現（参加型演出）
+
+### 締め
+
+- LiveFx は今後の発表（美容分野）でも使用
+- IT は無限の可能性があり、原動力は一人ひとりの想い
+- 学校生活を通して未来を一緒に作ろうと呼びかけ
+- 改めて入学おめでとうで締め
+
+また、美容分野でも一部演出が使われました。
 
 ## 6. スケジュール感
 
@@ -421,9 +639,6 @@ ITを学んで何ができるようになるかが入学する人たちが知れ
 ```md
 ### スマホをゆっくりと動かさせる演出（15秒程度）
 
-- 参考p5js（埋め込めるか要検証）
-  - https://p5js.org/examples/animation-and-variables-conditions/
-  - https://p5js.org/sketches/2689119/
 - メトロノームを映して全体のスマホの動きがあってくるとeffectがかかる
 - **たくさんボタンを押す**
   - **10秒くらいならできるかも**
@@ -441,7 +656,6 @@ ITを学んで何ができるようになるかが入学する人たちが知れ
     - 文字の表示
       - https://youtu.be/lLUN9AJamlI?si=cE8kW_JwaECKkxF4
       - https://youtu.be/CTi5bdKiwAQ?si=oQNt00FFvns-XIqu
-
     - 演者の動きに合わせて
     - 参考：嵐のLive映像がYouTubeで公開されている
       - https://youtu.be/J0F0e8jd5xk?si=WQ5rlr0qBgS4Q4_H&t=3741
@@ -456,7 +670,6 @@ ITを学んで何ができるようになるかが入学する人たちが知れ
   - スマホならではの演出が欲しい！！
 
 使えそうなセンサー類
-
 https://developer.mozilla.org/ja/docs/Web/API/Sensor_APIs
 ```
 
@@ -527,10 +740,9 @@ LiveFx 演出中に流す音楽について話し合いが始まりました。
 
 さらに、原稿（さいたまIT・WEB専門学校のプレゼンで読む）に関しても段々と完成してきました。
 
-### インタラクティブ演出中のトラブルと葛藤（2026/03/17）
+### インタラクティブ演出のトラブルと葛藤（2026/03/17）
 
-ここでトラブルが。
-事前に決選投票を取っていたインタラクティブ演出の操作方法について、前提条件が人によって違うことに気づきました。
+事前に投票を取っていたインタラクティブ演出の操作方法について、前提条件が人によって違うことに気づきました。
 それはアンケートを `操作していて気持ちが良いか` を前提にしていたからです。
 しかし、実際は `ストーリー性がある` ものを求めていました。
 

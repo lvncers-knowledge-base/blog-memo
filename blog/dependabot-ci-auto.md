@@ -199,7 +199,9 @@ grouped PR を除外しているのは、まとめ更新では `fetch-metadata` 
 
 `gh` CLI の GraphQL は見た目以上に多くの field を読みに行くため、`checks` だけでなく `statuses` や `actions` も必要になることがあります。
 
-App を作成したら、リポジトリの設定画面から `Secrets and variables` の `Actions` に次を設定します。
+`Settings > Developer settings > GitHub Apps` から作成した App を選択し、`Install App` からインストールをしてください。
+
+App をインストールしたら、リポジトリの設定画面から `Secrets and variables` の `Actions` に次を設定します。
 `dependabot-automerge.yml` では、次の repository variable / secret を使って installation token を発行します。
 
 - Repository Secrets
@@ -213,8 +215,6 @@ App を作成したら、リポジトリの設定画面から `Secrets and varia
   | Name                          | Secret             |
   | ----------------------------- | ------------------ |
   | `DEPENDABOT_AUTOMERGE_APP_ID` | <Github App の id> |
-
-`Settings > Developer settings > GitHub Apps` から作成した App を選択し、`Install App` からインストールをしてください。
 
 ### 5. ruleset / branch protection の bypass actor に App を追加する
 

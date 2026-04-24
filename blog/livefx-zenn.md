@@ -42,6 +42,7 @@ https://zenn.dev/siw/articles/2e73439f678488
 
 - Gitlab → Github 移行
 - EKS（Elastic Kubernetes Service）→ ECS（Elastic Container Service）移行（80 ％コスト削減）
+- ALB の自動的なスケールアウトとスケールアップによって負荷分散
 - タグ駆動ブランチングによって dev, sta, pro 環境へのデプロイ
 - Artillery を使用した WebSocket 接続テストと、HTTP エンドポイントへの負荷テスト導入
 - githook を使った Biome フォーマットを強制
@@ -119,6 +120,16 @@ https://zenn.dev/siw/articles/2e73439f678488
 | Discord              | コミュニケーション全般                                 |
 | Microsoft Teams      | 教務とのやりとりに使用                                 |
 | Microsoft Sharepoint | 重要なドキュメントを共有するため                       |
+
+### 定量的な結果
+
+| カテゴリ                     | 数                       |
+| ---------------------------- | ------------------------ |
+| websocket 合計接続数         | 12831                    |
+| websocket 最大接続数         | 3186                     |
+| ALB target responce code 2xx | 約 40000                 |
+| PR 件数                      | 954（dependabot を含む） |
+| Issue 件数                   | 950                      |
 
 ## 4. システムアーキテクチャ（2026ver）
 

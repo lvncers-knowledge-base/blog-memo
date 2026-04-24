@@ -126,7 +126,7 @@ https://zenn.dev/siw/articles/2e73439f678488
 | カテゴリ                     | 数                       |
 | ---------------------------- | ------------------------ |
 | websocket 合計接続数         | 12831                    |
-| websocket 最大接続数         | 3186                     |
+| websocket 最大同時接続数     | 3186                     |
 | ALB target responce code 2xx | 約 40000                 |
 | PR 件数                      | 954（dependabot を含む） |
 | Issue 件数                   | 950                      |
